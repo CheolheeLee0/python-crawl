@@ -1,9 +1,11 @@
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from datasets import load_dataset
 import logging
 from tqdm import tqdm
 import sys
+import os
+import librosa
+import glob
 
 # 로깅 설정
 logging.basicConfig(
@@ -35,6 +37,7 @@ logger.info(f"Loading model: {model_id}")
 model = None
 processor = None
 pipe = None
+MAX_FILES_TO_PROCESS = 20  # 최대 처리 파일 개수 설정
 
 def initialize_model():
     global model, processor, pipe
@@ -120,22 +123,51 @@ def transcribe_audio(audio_input):
         logger.error(f"Error during speech recognition: {str(e)}")
         raise
 
-# 예시 실행
+def process_mp3_files():
+    """downloads/videos 디렉토리의 mp3 파일들을 처리하는 함수"""
+    try:
+        # MP3 파일 경로 설정
+        mp3_dir = "downloads/videos"
+        mp3_files = glob.glob(os.path.join(mp3_dir, "*.mp3"))
+        
+        if not mp3_files:
+            logger.warning(f"No MP3 files found in {mp3_dir}")
+            return
+        
+        # 처리할 파일 수 제한
+        mp3_files = mp3_files[:MAX_FILES_TO_PROCESS]
+        logger.info(f"Found {len(mp3_files)} MP3 files to process")
+        
+        for mp3_file in mp3_files:
+            try:
+                # MP3 파일 로드
+                logger.info(f"Processing file: {mp3_file}")
+                audio_array, sampling_rate = librosa.load(mp3_file, sr=16000)
+                
+                # 음성을 텍스트로 변환
+                transcribed_text = transcribe_audio({
+                    'array': audio_array,
+                    'sampling_rate': sampling_rate
+                })
+                
+                # 결과를 txt 파일로 저장
+                txt_file = os.path.splitext(mp3_file)[0] + '.txt'
+                with open(txt_file, 'w', encoding='utf-8') as f:
+                    f.write(transcribed_text)
+                logger.info(f"Transcription saved to: {txt_file}")
+                
+            except Exception as e:
+                logger.error(f"Error processing file {mp3_file}: {str(e)}")
+                continue
+                
+    except Exception as e:
+        logger.error(f"Error in process_mp3_files: {str(e)}")
+        raise
+
+# 메인 실행 부분 수정
 if __name__ == "__main__":
     try:
-        logger.info("Loading dataset...")
-        dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
-        sample = dataset[0]["audio"]
-        logger.info("Dataset loaded successfully")
-        
-        # 오디오 샘플 정보 출력
-        print("\n=== 오디오 샘플 정보 ===")
-        print(f"샘플링 레이트: {sample['sampling_rate']} Hz")
-        print(f"오디오 길이: {len(sample['array'])} 샘플")
-        print(f"재생 시간: {len(sample['array'])/sample['sampling_rate']:.2f} 초")
-        
-        # 음성 인식 실행
-        transcribe_audio(sample)  # 전체 sample 딕셔너리 전달
+        process_mp3_files()
     except Exception as e:
         logger.error(f"Error in main execution: {str(e)}")
         raise
