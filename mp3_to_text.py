@@ -30,7 +30,7 @@ if torch.cuda.is_available():
 logger.info(f"Using device: {device}, dtype: {torch_dtype}")
 
 # 모델 ID 설정
-model_id = "openai/whisper-large-v3-turbo"
+model_id = "openai/whisper-large-v3"
 logger.info(f"Loading model: {model_id}")
 
 # 전역 변수 선언
@@ -110,7 +110,8 @@ def transcribe_audio(audio_input):
             {"sampling_rate": sampling_rate, "array": audio_array}, 
             return_timestamps=True,
             chunk_length_s=30,
-            stride_length_s=5
+            stride_length_s=5,
+            generate_kwargs={"language": "ko"}
         )
         
         transcribed_text = result["text"]
