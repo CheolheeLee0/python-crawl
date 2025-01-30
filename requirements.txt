@@ -1,0 +1,11 @@
+numpy
+torch
+scipy
+transformers
+datasets
+accelerate
+librosa
+soundfile
+tqdm
+regex
+# pip install torch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0

@@ -1,0 +1,9 @@
+---
+description: 윈도우 환경, pyenv, poetry 사용
+globs: 
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
